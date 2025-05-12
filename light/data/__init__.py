@@ -2,9 +2,11 @@
 This module provides data loaders and transformers for popular vision datasets.
 """
 from .cityscapes import CitySegmentation
+from .lesion import LesionSegmentation
 
 datasets = {
-    'citys': CitySegmentation
+    'citys': CitySegmentation,
+    'lesion': LesionSegmentation, 
 }
 
 
