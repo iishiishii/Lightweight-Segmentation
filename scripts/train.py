@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.utils.data as data
 import torch.backends.cudnn as cudnn
+from torch.utils.data import Dataset, DataLoader
 
 from torchvision import transforms
 from light.utils.distributed import *
@@ -31,6 +32,8 @@ def parse_args():
                         help='model name (default: mobilenet)')
     parser.add_argument('--dataset', type=str, default='citys',
                         help='dataset name (default: citys)')
+    parser.add_argument('--data-root', type=str, default='./npz_wholebbox_no_sam_preprocess/MRI_lesion/train',
+                        help='dataset root path')
     parser.add_argument('--base-size', type=int, default=1024,
                         help='base image size')
     parser.add_argument('--crop-size', type=int, default=768,
@@ -102,7 +105,7 @@ class Trainer(object):
         ])
         # dataset and dataloader
         data_kwargs = {'transform': input_transform, 'base_size': args.base_size, 'crop_size': args.crop_size}
-        trainset = get_segmentation_dataset(args.dataset, split='train', mode='train', **data_kwargs)
+        trainset = get_segmentation_dataset(args.dataset, data_root=args.data_root)
         args.iters_per_epoch = len(trainset) // (args.num_gpus * args.batch_size)
         args.max_iters = args.epochs * args.iters_per_epoch
 
@@ -114,7 +117,7 @@ class Trainer(object):
                                             pin_memory=True)
 
         if not args.skip_val:
-            valset = get_segmentation_dataset(args.dataset, split='val', mode='val', **data_kwargs)
+            valset = get_segmentation_dataset(args.dataset, data_root=args.data_root)
             val_sampler = make_data_sampler(valset, False, args.distributed)
             val_batch_sampler = make_batch_data_sampler(val_sampler, args.batch_size)
             self.val_loader = data.DataLoader(dataset=valset,
@@ -182,7 +185,7 @@ class Trainer(object):
 
             images = images.to(self.device)
             targets = targets.to(self.device)
-
+            print("image shape", images.shape)
             outputs = self.model(images)
             loss_dict = self.criterion(outputs, targets)
 
